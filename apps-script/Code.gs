@@ -43,9 +43,6 @@ function registrarIngreso(datos) {
   const marca = texto('marca', true), numero = texto('numero', true), origen = texto('origen', true);
   const destino = texto('destino', true), motivo = texto('motivo', true), estado = texto('estado', true);
   const ubicacion = texto('ubicacion', false);
-  const almacenes = ['Almacén María Grande', 'Almacén Bovril', 'Almacén Santa Elena'];
-  if (!almacenes.includes(destino)) throw new Error('Seleccioná un almacén válido.');
-  if (!['Nuevo','Reparado','Usado'].includes(estado)) throw new Error('Seleccioná un estado válido.');
   if (!/^\d+(?:[.,]\d+)?$/.test(potencia) || Number(potencia.replace(',', '.')) <= 0) throw new Error('La potencia debe ser un número positivo.');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) throw new Error('Ingresá una fecha válida.');
   const partes = fecha.split('-').map(Number), fechaObj = new Date(partes[0], partes[1]-1, partes[2], 12);
@@ -65,7 +62,8 @@ function registrarIngreso(datos) {
       const claves = inv.getRange(2, 10, inv.getLastRow()-1, 2).getDisplayValues();
       if (claves.some(r => normalizar(r[0]) === normalizar(marca) && normalizar(r[1]) === normalizar(numero))) throw new Error('Ya existe un transformador con esa marca y número.');
     }
-    const matricula = estado === 'Nuevo' ? '0' : '5';
+    const estadoNormal = estado.toLocaleUpperCase();
+    const matricula = estadoNormal === 'NUEVO' ? '0' : (['REPARADO','USADO'].includes(estadoNormal) ? '5' : '');
     const movimiento = [fechaObj, Number(potencia.replace(',', '.')), relacion, marca, numero, origen, destino, motivo, destino, estado, matricula, ''];
     const inventario = ['María Grande','','','',destino,'','',Number(potencia.replace(',', '.')),relacion,marca,numero,motivo,estado,ubicacion,'Actualizado el ' + Utilities.formatDate(new Date(),Session.getScriptTimeZone(),'dd/MM/yyyy HH:mm')];
     // Filas nuevas, verificadas; el bloqueo coordina solicitudes de esta aplicación, no ediciones manuales.
@@ -88,4 +86,27 @@ function registrarIngreso(datos) {
     }
     return { mensaje:'Ingreso registrado. Verificá el inventario y los movimientos.', filaInventario:operaciones[2].fila };
   } finally { lock.releaseLock(); }
+}
+
+/** Opciones sugeridas: valores existentes, sin impedir otros valores. */
+function obtenerOpcionesIngreso() {
+  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (!id) throw new Error('Falta configurar SPREADSHEET_ID.');
+  const libro = SpreadsheetApp.openById(id);
+  const inv = libro.getSheetByName('Maria Grande'), cons = libro.getSheetByName('Consolidado');
+  if (!inv || !cons) throw new Error('Faltan hojas para cargar las opciones.');
+  if (inv.getLastRow() > MAX_FILAS || cons.getLastRow() > MAX_FILAS) throw new Error('Una hoja supera el límite de ' + MAX_FILAS + ' filas para cargar opciones.');
+  const listas = {potencia:[], relacion:[], marca:[], origen:[], destino:['Almacén María Grande','Almacén Bovril','Almacén Santa Elena'], motivo:[], estado:['Nuevo','Reparado','Usado'], ubicacion:[]};
+  function agregar(clave, valor) { const v = String(valor || '').trim(); if (v && v.length <= 300 && !/^[=+@\-]/.test(v)) listas[clave].push(v); }
+  if (inv.getLastRow() > 1) inv.getRange(2,1,inv.getLastRow()-1,15).getDisplayValues().forEach(r => {
+    agregar('potencia',r[7]); agregar('relacion',r[8]); agregar('marca',r[9]); agregar('motivo',r[11]); agregar('estado',r[12]); agregar('ubicacion',r[13]);
+  });
+  if (cons.getLastRow() > 1) cons.getRange(2,1,cons.getLastRow()-1,10).getDisplayValues().forEach(r => {
+    agregar('potencia',r[1]); agregar('relacion',r[2]); agregar('marca',r[3]); agregar('origen',r[5]); agregar('destino',r[6]); agregar('motivo',r[7]); agregar('estado',r[9]);
+  });
+  Object.keys(listas).forEach(k => {
+    const encontrados = new Map(); listas[k].forEach(v => { const clave=v.toLocaleUpperCase(); if(!encontrados.has(clave)) encontrados.set(clave,v); });
+    listas[k] = Array.from(encontrados.values()).sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+  });
+  return listas;
 }
