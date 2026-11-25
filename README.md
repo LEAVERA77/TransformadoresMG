@@ -1,12 +1,14 @@
 # Transformadores María Grande
 
+**Actualización:** se incluye una función experimental de ingreso que escribe en Sheets. Consultar `PRUEBA-INGRESO.md`; usar exclusivamente una copia de prueba. La implementación anterior publicada puede seguir siendo de solo lectura.
+
 Primera etapa de migración del libro Excel a una aplicación web con Google Apps Script y Google Sheets. El archivo `.xlsm` original permanece intacto en este repositorio y es el respaldo.
 
 ## Alcance actual
 
 - Consulta y búsqueda del inventario (`Maria Grande`), movimientos históricos (`Consolidado`) y enviados sin informar (`Enviados sin informar 2020`).
 - Paginación en el navegador; actualización manual y aviso si la hoja excede 20.000 filas.
-- **Solo lectura**: no crea ni modifica datos. No reproduce todavía los formularios, altas, bajas, movimientos, impresiones, validaciones ni otras automatizaciones VBA. Deben analizarse y probarse antes de habilitar escritura; no utilizar esta versión como reemplazo integral del Excel.
+- La versión actual agrega un ingreso experimental; no usar con datos operativos antes de validarlo. No reproduce todavía los formularios, altas, bajas, movimientos, impresiones, validaciones ni otras automatizaciones VBA. Deben analizarse y probarse antes de habilitar escritura; no utilizar esta versión como reemplazo integral del Excel.
 - Se muestran hasta 21 columnas del inventario, 12 del consolidado y 20 de enviados. Los valores se muestran tal como aparecen en Sheets; no se importan controles ni macros VBA.
 
 ## Preparación de datos
